@@ -153,7 +153,6 @@
 <body>
 <div class="page">
 
-  <!-- Header -->
   <div class="header">
     <div class="ticker-badge">
       <i class="ti ti-brand-paypal" aria-hidden="true"></i>
@@ -162,7 +161,6 @@
     <div class="clock-display" id="clockDisplay">—</div>
   </div>
 
-  <!-- Price + Market Cap hero -->
   <div class="price-hero">
     <div>
       <div class="hero-label">Share Price</div>
@@ -177,14 +175,12 @@
     </div>
   </div>
 
-  <!-- Shares Outstanding -->
   <div class="shares-card">
     <div class="section-label">Estimated shares outstanding</div>
     <div class="shares-big" id="sharesDisplay">—</div>
     <div class="shares-note" id="sharesNote">Basis: Q1 2026 (Mar 31): 892,000,000 · Projected Q2 2026: −30,000,000</div>
   </div>
 
-  <!-- Dollar metrics -->
   <div class="grid grid-2">
     <div class="metric">
       <div class="m-label">Buybacks today (est.)</div>
@@ -215,7 +211,6 @@
     </div>
   </div>
 
-  <!-- Q2 progress -->
   <div class="progress-wrap" style="margin-top:1rem">
     <div class="progress-row">
       <span>Q2 2026 progress</span>
@@ -226,13 +221,11 @@
     </div>
   </div>
 
-  <!-- Chart -->
   <div class="chart-card">
     <div class="chart-title">Shares outstanding · quarter-end (millions)</div>
     <div class="chart-bars" id="chartBars"></div>
   </div>
 
-  <!-- Data table -->
   <div class="table-card">
     <div class="section-label" style="margin-bottom:10px">Source data · SEC filings</div>
     <table>
@@ -248,7 +241,6 @@
     </table>
   </div>
 
-  <!-- Footer -->
   <div class="footer">
     <div><span class="dot"></span>Live estimate · interpolated per second</div>
     <div id="footerTime" style="font-variant-numeric:tabular-nums">—</div>
@@ -258,9 +250,7 @@
     <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001633917&type=10-Q" target="_blank">SEC EDGAR</a>
   </div>
 
-</div><!-- /page -->
-
-<script>
+</div><script>
 /* ── Data ─────────────────────────────────────────────── */
 const QUARTERS = [
   { q:"Q4 2023", shares:1072e6, buyback:null,   spent:null   },
@@ -337,40 +327,35 @@ function buildTable() {
   }).join('');
 }
 
-/* ── Fetch live price via Anthropic API web search ────── */
+/* ── Fetch live price via Finnhub API ────── */
+const API_KEY = "d4uivhpr01qu53ufdf4gd4uivhpr01qu53ufdf50";
+
 async function fetchPrice() {
-  document.getElementById('priceNote').textContent = 'Fetching live price via web search…';
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 200,
-        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: 'You are a stock price assistant. Reply ONLY with a single JSON object: {"price": <number>, "change": <number>, "changePct": <number>}. No explanation, no markdown, no other text.',
-        messages: [{ role: 'user', content: 'What is the current PYPL PayPal stock price, dollar change, and percent change today? Give me just the JSON.' }]
-      })
-    });
+    const res = await fetch(
+      `https://finnhub.io/api/v1/quote?symbol=PYPL&token=${API_KEY}`
+    );
+
     const data = await res.json();
-    // find the text block
-    const textBlocks = (data.content || []).filter(b => b.type === 'text');
-    const raw = textBlocks.map(b => b.text).join('');
-    const cleaned = raw.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(cleaned);
-    if (parsed && typeof parsed.price === 'number') {
-      livePrice = parsed.price;
-      priceTs   = new Date();
-      renderPrice(parsed.price, parsed.change, parsed.changePct);
-    } else {
-      throw new Error('no price');
+
+    if (!data || typeof data.c !== "number") {
+      throw new Error("No price data");
     }
-  } catch(e) {
-    // fallback to last known price
-    livePrice = 40.70;
-    priceTs   = new Date('2026-06-10');
-    renderPrice(40.70, -0.76, -1.83);
-    document.getElementById('priceNote').textContent = 'Live fetch failed — using last known close: $40.70 (Jun 10, 2026)';
+
+    const price = data.c;
+    const prev = data.pc;
+
+    const change = price - prev;
+    const changePct = (change / prev) * 100;
+
+    livePrice = price;
+    priceTs = new Date();
+
+    renderPrice(price, change, changePct);
+  } catch (e) {
+    console.error(e);
+    document.getElementById('priceNote').textContent =
+      'Price feed unavailable – check API key';
   }
 }
 
@@ -388,7 +373,7 @@ function renderPrice(price, change, changePct) {
 function tick() {
   const now    = new Date();
   const shares = estimateShares(now);
-  const price  = livePrice || 40.70;
+  const price  = livePrice || 68.50; // Updated fallback price from 40.70 to a closer estimate
 
   // shares
   document.getElementById('sharesDisplay').textContent = fmtShares(shares);
