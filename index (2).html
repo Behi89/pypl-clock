@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PYPL · Buyback Clock</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #f5f4f0;
+    --surface:  #ffffff;
+    --surface2: #f1efe8;
+    --text:     #1a1a18;
+    --muted:    #888780;
+    --border:   rgba(0,0,0,0.10);
+    --green:    #3B6D11;
+    --green-lt: #9FE1CB;
+    --red:      #a32d2d;
+    --radius:   12px;
+    --radius-sm:8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:      #141412;
+      --surface: #1e1e1b;
+      --surface2:#272724;
+      --text:    #f0efe8;
+      --muted:   #888780;
+      --border:  rgba(255,255,255,0.09);
+      --green:   #9FE1CB;
+      --green-lt:#3B6D11;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .page { width: 100%; max-width: 680px; }
+
+  /* ── header ── */
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .ticker-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 6px; padding: 4px 12px;
+    font-size: 13px; font-weight: 500; color: var(--muted);
+  }
+  .clock-display { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* ── price hero ── */
+  .price-hero {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  .hero-label { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 5px; }
+  .hero-val { font-size: 38px; font-weight: 500; color: var(--text); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+  .hero-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .change-pos { color: var(--green); }
+  .change-neg { color: #a32d2d; }
+  .price-note { font-size: 11px; color: var(--muted); margin-top: 6px; font-style: italic; }
+
+  /* ── shares outstanding ── */
+  .shares-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .section-label { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+  .shares-big { font-size: 36px; font-weight: 500; color: var(--text); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -1px; }
+  .shares-note { font-size: 11px; color: var(--muted); margin-top: 5px; font-style: italic; }
+
+  /* ── metric grid ── */
+  .grid { display: grid; gap: 10px; margin-bottom: 1rem; }
+  .grid-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .grid-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .metric {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+  }
+  .metric .m-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .metric .m-val { font-size: 16px; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+  .metric .m-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── progress ── */
+  .progress-wrap { margin-bottom: 1rem; }
+  .progress-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .progress-track { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 1s linear; }
+
+  /* ── chart ── */
+  .chart-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .chart-title { font-size: 12px; color: var(--muted); margin-bottom: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 5px; height: 90px; }
+  .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 3px; }
+  .bar-rect { width: 100%; border-radius: 3px 3px 0 0; min-height: 4px; }
+  .bar-lbl { font-size: 9px; color: var(--muted); text-align: center; line-height: 1.3; }
+  .bar-top { font-size: 9px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* ── data table ── */
+  .table-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 4px 0 8px; color: var(--muted); font-weight: 400; border-bottom: 0.5px solid var(--border); }
+  th:not(:first-child) { text-align: right; }
+  td { padding: 6px 0; border-bottom: 0.5px solid var(--border); color: var(--text); }
+  td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; font-weight: 500; }
+  .green { color: var(--green); }
+
+  /* ── footer ── */
+  .footer { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; }
+  .dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; margin-right: 5px; animation: blink 2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+  .source-links { font-size: 11px; color: var(--muted); margin-top: 0.75rem; text-align: center; }
+  .source-links a { color: var(--green); text-decoration: none; }
+  .source-links a:hover { text-decoration: underline; }
+
+  /* ── loading spinner ── */
+  .price-loading { font-size: 13px; color: var(--muted); font-style: italic; }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 1.5px solid var(--muted); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 5px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="ticker-badge">
+      <i class="ti ti-brand-paypal" aria-hidden="true"></i>
+      PYPL · NASDAQ
+    </div>
+    <div class="clock-display" id="clockDisplay">—</div>
+  </div>
+
+  <div class="price-hero">
+    <div>
+      <div class="hero-label">Share Price</div>
+      <div class="hero-val" id="priceDisplay"><span class="spinner"></span></div>
+      <div class="hero-sub" id="priceChange">&nbsp;</div>
+      <div class="price-note" id="priceNote">Fetching live price…</div>
+    </div>
+    <div>
+      <div class="hero-label">Market Cap</div>
+      <div class="hero-val" id="mktcapDisplay">—</div>
+      <div class="hero-sub" id="mktcapSub">&nbsp;</div>
+    </div>
+  </div>
+
+  <div class="shares-card">
+    <div class="section-label">Estimated shares outstanding</div>
+    <div class="shares-big" id="sharesDisplay">—</div>
+    <div class="shares-note" id="sharesNote">Basis: Q1 2026 (Mar 31): 892,000,000 · Projected Q2 2026: −30,000,000</div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="metric">
+      <div class="m-label">Buybacks today (est.)</div>
+      <div class="m-val" id="dollarToday">—</div>
+      <div class="m-sub" id="sharestoday">— shares</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Buybacks this quarter (est.)</div>
+      <div class="m-val" id="dollarQuarter">—</div>
+      <div class="m-sub" id="sharesQuarter">— shares</div>
+    </div>
+  </div>
+  <div class="grid grid-3" style="margin-top:10px">
+    <div class="metric">
+      <div class="m-label">Annual buyback rate</div>
+      <div class="m-val" id="annualDollar">—</div>
+      <div class="m-sub">~120M shares/yr</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Shares retired (2024–now)</div>
+      <div class="m-val" id="totalRetired">180,000,000</div>
+      <div class="m-sub">vs. 1,072M at end-2023</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Float reduction</div>
+      <div class="m-val" id="floatReduction">—</div>
+      <div class="m-sub">since Dec 2023</div>
+    </div>
+  </div>
+
+  <div class="progress-wrap" style="margin-top:1rem">
+    <div class="progress-row">
+      <span>Q2 2026 progress</span>
+      <span id="quarterProgress">—</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Shares outstanding · quarter-end (millions)</div>
+    <div class="chart-bars" id="chartBars"></div>
+  </div>
+
+  <div class="table-card">
+    <div class="section-label" style="margin-bottom:10px">Source data · SEC filings</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Quarter</th>
+          <th>Shares outstanding</th>
+          <th>Shares repurchased</th>
+          <th>$ spent</th>
+        </tr>
+      </thead>
+      <tbody id="dataTable"></tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <div><span class="dot"></span>Live estimate · interpolated per second</div>
+    <div id="footerTime" style="font-variant-numeric:tabular-nums">—</div>
+  </div>
+  <div class="source-links">
+    Sources: <a href="https://investor.pypl.com" target="_blank">investor.pypl.com</a> ·
+    <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001633917&type=10-Q" target="_blank">SEC EDGAR</a>
+  </div>
+
+</div><script>
+/* ── Data ─────────────────────────────────────────────── */
+const QUARTERS = [
+  { q:"Q4 2023", shares:1072e6, buyback:null,   spent:null   },
+  { q:"Q1 2024", shares:1053e6, buyback:19e6,   spent:1500e6 },
+  { q:"Q2 2024", shares:1031e6, buyback:22e6,   spent:null   },
+  { q:"Q3 2024", shares:1006e6, buyback:28e6,   spent:1800e6 },
+  { q:"Q4 2024", shares: 993e6, buyback:15e6,   spent:1200e6 },
+  { q:"Q1 2025", shares: 979e6, buyback:19e6,   spent:1500e6 },
+  { q:"Q2 2025", shares: 960e6, buyback:21e6,   spent:null   },
+  { q:"Q3 2025", shares: 941e6, buyback:21e6,   spent:1500e6 },
+  { q:"Q4 2025", shares: 920e6, buyback:21e6,   spent:null   },
+  { q:"Q1 2026", shares: 892e6, buyback:34e6,   spent:1513e6 },
+];
+
+const Q2_START   = new Date('2026-04-01T00:00:00');
+const Q2_END     = new Date('2026-06-30T23:59:59');
+const Q1_SHARES  = 892e6;
+const Q2_BUYBACK = 30e6;          // projected
+const Q2_SPEND   = 1400e6;        // projected ~$1.4B
+const BASE_SHARES = 1072e6;
+
+let livePrice = null;   // filled by fetchPrice()
+let priceTs   = null;
+
+/* ── Formatting ───────────────────────────────────────── */
+function fmtShares(n) { return Math.round(n).toLocaleString('en-US'); }
+function fmtMoney(n, dec=2) {
+  if (n >= 1e9) return '$' + (n/1e9).toFixed(dec) + 'B';
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(dec) + 'M';
+  return '$' + n.toLocaleString('en-US');
+}
+function fmtPct(n) { return (n*100).toFixed(2) + '%'; }
+
+/* ── Share estimate ───────────────────────────────────── */
+function estimateShares(now) {
+  if (now <= Q2_START) return Q1_SHARES;
+  if (now >= Q2_END)   return Q1_SHARES - Q2_BUYBACK;
+  const f = (now - Q2_START) / (Q2_END - Q2_START);
+  return Q1_SHARES - Q2_BUYBACK * f;
+}
+
+/* ── Build chart ──────────────────────────────────────── */
+function buildChart() {
+  const el = document.getElementById('chartBars');
+  const data = QUARTERS.slice(-8);
+  const minS = 870e6, maxS = 1080e6, range = maxS - minS;
+  el.innerHTML = data.map((d, i) => {
+    const isLast = i === data.length - 1;
+    const h = ((d.shares - minS) / range * 100).toFixed(1);
+    const color = isLast ? 'var(--green)' : 'var(--green-lt, #9FE1CB)';
+    const red = i > 0 ? ((data[i-1].shares - d.shares)/1e6).toFixed(0) : null;
+    const lbl = d.q.replace(' 20', "'");
+    return `<div class="bar-col">
+      <div class="bar-top">${(d.shares/1e6).toFixed(0)}</div>
+      <div class="bar-rect" style="height:${h}%;background:${color}"></div>
+      <div class="bar-lbl">${lbl}${red ? '<br>−'+red : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Build table ──────────────────────────────────────── */
+function buildTable() {
+  const tb = document.getElementById('dataTable');
+  tb.innerHTML = QUARTERS.map((d, i) => {
+    const isLast = i === QUARTERS.length - 1;
+    const redShares = d.buyback ? '−' + fmtShares(d.buyback) : '—';
+    const spent = d.spent ? fmtMoney(d.spent, 1) : '—';
+    return `<tr${isLast ? ' style="background:var(--surface2)"' : ''}>
+      <td>${d.q}${isLast ? ' ✓' : ''}</td>
+      <td>${fmtShares(d.shares)}</td>
+      <td class="green">${redShares}</td>
+      <td>${spent}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Fetch live price via Finnhub API ────── */
+const API_KEY = "d4uivhpr01qu53ufdf4gd4uivhpr01qu53ufdf50";
+
+async function fetchPrice() {
+  try {
+    const res = await fetch(
+      `https://finnhub.io/api/v1/quote?symbol=PYPL&token=${API_KEY}`
+    );
+
+    const data = await res.json();
+
+    if (!data || typeof data.c !== "number") {
+      throw new Error("No price data");
+    }
+
+    const price = data.c;
+    const prev = data.pc;
+
+    const change = price - prev;
+    const changePct = (change / prev) * 100;
+
+    livePrice = price;
+    priceTs = new Date();
+
+    renderPrice(price, change, changePct);
+  } catch (e) {
+    console.error(e);
+    document.getElementById('priceNote').textContent =
+      'Price feed unavailable – check API key';
+  }
+}
+
+function renderPrice(price, change, changePct) {
+  document.getElementById('priceDisplay').textContent = '$' + price.toFixed(2);
+  const dir = change >= 0 ? '+' : '';
+  const cls = change >= 0 ? 'change-pos' : 'change-neg';
+  document.getElementById('priceChange').innerHTML =
+    `<span class="${cls}">${dir}${change.toFixed(2)} (${dir}${changePct.toFixed(2)}%)</span> today`;
+  document.getElementById('priceNote').textContent =
+    priceTs ? 'Price as of ' + priceTs.toLocaleString('en-US', {dateStyle:'medium', timeStyle:'short'}) : 'Price fetched';
+}
+
+/* ── Tick ──────────────────────────────────────────────── */
+function tick() {
+  const now    = new Date();
+  const shares = estimateShares(now);
+  const price  = livePrice || 68.50; // Updated fallback price from 40.70 to a closer estimate
+
+  // shares
+  document.getElementById('sharesDisplay').textContent = fmtShares(shares);
+
+  // market cap
+  const mktCap = shares * price;
+  document.getElementById('mktcapDisplay').textContent = fmtMoney(mktCap, 1);
+  document.getElementById('mktcapSub').textContent = fmtShares(Math.round(shares)) + ' shares × $' + price.toFixed(2);
+
+  // Q2 fraction
+  const f = Math.min(1, Math.max(0, (now - Q2_START) / (Q2_END - Q2_START)));
+
+  // shares repurchased this quarter
+  const sharesBoughtQ = Q2_BUYBACK * f;
+  const dollarBoughtQ = Q2_SPEND * f;
+  document.getElementById('dollarQuarter').textContent = fmtMoney(dollarBoughtQ, 1);
+  document.getElementById('sharesQuarter').textContent = fmtShares(Math.round(sharesBoughtQ)) + ' shares';
+
+  // shares repurchased today
+  const dayStart = new Date(now); dayStart.setHours(0,0,0,0);
+  const dayF = (now - dayStart) / 86400000;
+  const sharesBoughtToday = (Q2_BUYBACK / 91) * dayF;
+  const dollarBoughtToday = (Q2_SPEND   / 91) * dayF;
+  document.getElementById('dollarToday').textContent = fmtMoney(dollarBoughtToday, 2);
+  document.getElementById('sharestoday').textContent = fmtShares(Math.round(sharesBoughtToday)) + ' shares';
+
+  // annual rate
+  const annualDollar = Q2_SPEND * 4;
+  document.getElementById('annualDollar').textContent = fmtMoney(annualDollar, 1);
+
+  // float reduction since Dec 2023
+  const retired = BASE_SHARES - shares;
+  document.getElementById('floatReduction').textContent = fmtPct(retired / BASE_SHARES);
+
+  // progress bar
+  const pct = (f * 100).toFixed(0);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('quarterProgress').textContent = pct + '% of Q2 2026 elapsed';
+
+  // clocks
+  const pad = n => String(n).padStart(2,'0');
+  const t = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  document.getElementById('clockDisplay').textContent = t;
+  document.getElementById('footerTime').textContent = now.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) + ' · ' + t;
+}
+
+/* ── Init ─────────────────────────────────────────────── */
+buildChart();
+buildTable();
+tick();
+setInterval(tick, 1000);
+fetchPrice();
+// refresh price every 5 minutes
+setInterval(fetchPrice, 5 * 60 * 1000);
+</script>
+</body>
+</html>
