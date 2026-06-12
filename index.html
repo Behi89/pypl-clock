@@ -110,15 +110,24 @@
     background: var(--surface);
     border: 0.5px solid var(--border);
     border-radius: var(--radius);
-    padding: 1.25rem 1.5rem;
+    padding: 1.25rem 1.5rem 1rem;
     margin-bottom: 1rem;
   }
-  .chart-title { font-size: 12px; color: var(--muted); margin-bottom: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
-  .chart-bars { display: flex; align-items: flex-end; gap: 5px; height: 90px; }
-  .bar-col { display: flex; flex-direction: column; align-items: center; flex: 1; gap: 3px; }
-  .bar-rect { width: 100%; border-radius: 3px 3px 0 0; min-height: 4px; }
-  .bar-lbl { font-size: 9px; color: var(--muted); text-align: center; line-height: 1.3; }
-  .bar-top { font-size: 9px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .chart-title { font-size: 12px; color: var(--muted); margin-bottom: 16px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .chart-bars {
+    display: flex; align-items: flex-end; gap: 6px; height: 160px;
+    position: relative;
+    background-image: repeating-linear-gradient(to top, var(--border) 0, var(--border) 1px, transparent 1px, transparent 25%);
+    padding-bottom: 1px;
+  }
+  .bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1; gap: 4px; height: 100%; }
+  .bar-rect {
+    width: 100%; border-radius: 4px 4px 0 0; min-height: 4px;
+    transition: height 0.6s cubic-bezier(.4,0,.2,1);
+  }
+  .bar-lbl { font-size: 10px; color: var(--muted); text-align: center; line-height: 1.3; margin-top: 2px; }
+  .bar-top { font-size: 10px; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+
 
   /* ── data table ── */
   .table-card {
@@ -153,6 +162,7 @@
 <body>
 <div class="page">
 
+  <!-- Header -->
   <div class="header">
     <div class="ticker-badge">
       <i class="ti ti-brand-paypal" aria-hidden="true"></i>
@@ -161,6 +171,7 @@
     <div class="clock-display" id="clockDisplay">—</div>
   </div>
 
+  <!-- Price + Market Cap hero -->
   <div class="price-hero">
     <div>
       <div class="hero-label">Share Price</div>
@@ -175,12 +186,14 @@
     </div>
   </div>
 
+  <!-- Shares Outstanding -->
   <div class="shares-card">
     <div class="section-label">Estimated shares outstanding</div>
     <div class="shares-big" id="sharesDisplay">—</div>
     <div class="shares-note" id="sharesNote">Basis: Q1 2026 (Mar 31): 892,000,000 · Projected Q2 2026: −30,000,000</div>
   </div>
 
+  <!-- Dollar metrics -->
   <div class="grid grid-2">
     <div class="metric">
       <div class="m-label">Buybacks today (est.)</div>
@@ -211,6 +224,7 @@
     </div>
   </div>
 
+  <!-- Q2 progress -->
   <div class="progress-wrap" style="margin-top:1rem">
     <div class="progress-row">
       <span>Q2 2026 progress</span>
@@ -221,13 +235,59 @@
     </div>
   </div>
 
+  <!-- Chart -->
   <div class="chart-card">
     <div class="chart-title">Shares outstanding · quarter-end (millions)</div>
     <div class="chart-bars" id="chartBars"></div>
   </div>
 
+  <!-- EPS history + forecast chart -->
+  <div class="chart-card">
+    <div class="chart-title">EPS (Diluted, GAAP) · Last 10 Years + Buyback Forecast</div>
+    <div class="chart-bars" id="epsChartBars"></div>
+  </div>
+
+  <!-- EPS forecast model -->
   <div class="table-card">
-    <div class="section-label" style="margin-bottom:10px">Source data · SEC filings</div>
+    <div class="section-label" style="margin-bottom:10px">EPS Forecast 2026–2030 · Buyback Pace Considered</div>
+
+    <div class="grid grid-2" style="margin-bottom:14px">
+      <div>
+        <div class="m-label">Net income growth p.a.</div>
+        <input type="range" id="niGrowth" min="0" max="15" step="0.5" value="7" style="width:100%">
+        <div class="m-sub" id="niGrowthVal">7.0% p.a.</div>
+      </div>
+      <div>
+        <div class="m-label">Buyback pace</div>
+        <input type="range" id="buybackPace" min="40" max="160" step="5" value="120" style="width:100%">
+        <div class="m-sub" id="buybackPaceVal">120M shares/yr</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Net income</th>
+          <th>Shares (M)</th>
+          <th>EPS</th>
+          <th>EPS growth</th>
+          <th>of which buyback</th>
+        </tr>
+      </thead>
+      <tbody id="epsForecastTable"></tbody>
+    </table>
+    <div class="shares-note" style="margin-top:10px">
+      Base year 2025: net income ≈ $5.23B, avg. diluted shares ≈ 958M → EPS $5.46.
+      Net income grows at the selected rate p.a.; share count declines linearly at the selected buyback pace
+      (with a floor of 400M). "Of which buyback" shows the portion of EPS growth that comes purely from the
+      shrinking share count (net income held constant). This is a model calculation only, not an analyst estimate.
+    </div>
+  </div>
+
+  <!-- Data table -->
+  <div class="table-card">
+    <div class="section-label" style="margin-bottom:10px">Source data · SEC filings + forecast</div>
     <table>
       <thead>
         <tr>
@@ -239,8 +299,13 @@
       </thead>
       <tbody id="dataTable"></tbody>
     </table>
+    <div class="shares-note" style="margin-top:10px">
+      ✓ = last reported quarter. * = forecast quarters, modeled at a ~30M shares/quarter buyback pace
+      (~$1.4B/quarter), consistent with the recent run-rate. Not company guidance.
+    </div>
   </div>
 
+  <!-- Footer -->
   <div class="footer">
     <div><span class="dot"></span>Live estimate · interpolated per second</div>
     <div id="footerTime" style="font-variant-numeric:tabular-nums">—</div>
@@ -250,7 +315,9 @@
     <a href="https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001633917&type=10-Q" target="_blank">SEC EDGAR</a>
   </div>
 
-</div><script>
+</div><!-- /page -->
+
+<script>
 /* ── Data ─────────────────────────────────────────────── */
 const QUARTERS = [
   { q:"Q4 2023", shares:1072e6, buyback:null,   spent:null   },
@@ -263,6 +330,17 @@ const QUARTERS = [
   { q:"Q3 2025", shares: 941e6, buyback:21e6,   spent:1500e6 },
   { q:"Q4 2025", shares: 920e6, buyback:21e6,   spent:null   },
   { q:"Q1 2026", shares: 892e6, buyback:34e6,   spent:1513e6 },
+  // ── Forecast quarters (model estimate, ~30M shares/quarter buyback pace) ──
+  { q:"Q2 2026", shares: 862e6, buyback:30e6,   spent:1400e6, forecast:true },
+  { q:"Q3 2026", shares: 832e6, buyback:30e6,   spent:1400e6, forecast:true },
+  { q:"Q4 2026", shares: 802e6, buyback:30e6,   spent:1400e6, forecast:true },
+  { q:"Q1 2027", shares: 772e6, buyback:30e6,   spent:1400e6, forecast:true },
+  { q:"Q2 2027", shares: 742e6, buyback:30e6,   spent:1400e6, forecast:true },
+  { q:"Q3 2027", shares: 712e6, buyback:30e6,   spent:1400e6, forecast:true },
+  { q:"Q4 2027", shares: 682e6, buyback:30e6,   spent:1400e6, forecast:true },
+  { q:"Q1 2028", shares: 652e6, buyback:30e6,   spent:1400e6, forecast:true },
+  { q:"Q2 2028", shares: 622e6, buyback:30e6,   spent:1400e6, forecast:true },
+  { q:"Q3 2028", shares: 592e6, buyback:30e6,   spent:1400e6, forecast:true },
 ];
 
 const Q2_START   = new Date('2026-04-01T00:00:00');
@@ -271,6 +349,24 @@ const Q1_SHARES  = 892e6;
 const Q2_BUYBACK = 30e6;          // projected
 const Q2_SPEND   = 1400e6;        // projected ~$1.4B
 const BASE_SHARES = 1072e6;
+
+/* ── EPS history (GAAP diluted, from 10-K / proxy filings) ── */
+const EPS_HISTORY = [
+  { y: 2016, eps: 1.15 },
+  { y: 2017, eps: 1.47 },
+  { y: 2018, eps: 1.71 },
+  { y: 2019, eps: 2.07 },
+  { y: 2020, eps: 3.54 },
+  { y: 2021, eps: 3.52 },
+  { y: 2022, eps: 2.09 },
+  { y: 2023, eps: 3.84 },
+  { y: 2024, eps: 4.03 },
+  { y: 2025, eps: 5.46 },
+];
+// 2025 base figures used as forecast starting point
+const BASE_NI_2025     = 5230e6;  // GAAP net income FY2025
+const BASE_SHARES_2025 = 958e6;   // approx. avg. diluted shares FY2025
+const SHARE_FLOOR      = 400e6;   // model floor so buybacks can't go negative
 
 let livePrice = null;   // filled by fetchPrice()
 let priceTs   = null;
@@ -292,21 +388,113 @@ function estimateShares(now) {
   return Q1_SHARES - Q2_BUYBACK * f;
 }
 
-/* ── Build chart ──────────────────────────────────────── */
+/* ── Build EPS history + forecast chart ──────────────────── */
+function buildEpsChart(forecast) {
+  const el = document.getElementById('epsChartBars');
+  const all = EPS_HISTORY.map(d => ({ y: d.y, eps: d.eps, isForecast: false }))
+    .concat(forecast.map(d => ({ y: d.y, eps: d.eps, isForecast: true })));
+  const maxEps = Math.max(...all.map(d => d.eps)) * 1.08;
+  const minEpsForColor = Math.min(...all.map(d => d.eps));
+
+  el.innerHTML = all.map(d => {
+    const h = (d.eps / maxEps * 100).toFixed(1);
+    const isCurrent = d.y === 2025;
+    // color intensity scales with EPS value (more profitable years = deeper green)
+    const intensity = (d.eps - minEpsForColor) / (maxEps - minEpsForColor);
+    const lightness = 78 - intensity * 35; // 78% (pale) -> 43% (deep)
+    let style;
+    if (d.isForecast) {
+      style = `height:${h}%;background:hsla(155,35%,${lightness}%,0.35);border:1.5px dashed var(--green)`;
+    } else if (isCurrent) {
+      style = `height:${h}%;background:var(--green);box-shadow:inset 0 0 0 1px var(--green)`;
+    } else {
+      style = `height:${h}%;background:hsl(155,35%,${lightness}%)`;
+    }
+    return `<div class="bar-col">
+      <div class="bar-top" style="${isCurrent ? 'color:var(--green);font-weight:600' : ''}">${d.eps.toFixed(2)}</div>
+      <div class="bar-rect" style="${style}"></div>
+      <div class="bar-lbl">${d.isForecast ? "'" + String(d.y).slice(2) + '*' : "'" + String(d.y).slice(2)}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Compute buyback-aware EPS forecast ──────────────────── */
+function computeForecast() {
+  const niGrowth    = parseFloat(document.getElementById('niGrowth').value) / 100;
+  const buybackPace = parseFloat(document.getElementById('buybackPace').value) * 1e6;
+
+  document.getElementById('niGrowthVal').textContent = niGrowth.toLocaleString('en-US', {style:'percent', minimumFractionDigits:1}) + ' p.a.';
+  document.getElementById('buybackPaceVal').textContent = (buybackPace / 1e6).toFixed(0) + 'M shares/yr';
+
+  let ni        = BASE_NI_2025;
+  let shares    = BASE_SHARES_2025;
+  let prevEps   = ni / shares; // ≈ 5.46, matches 2025 actual
+
+  const rows = [];
+  for (let i = 1; i <= 5; i++) {
+    const y = 2025 + i;
+    const prevShares = shares;
+
+    ni     = ni * (1 + niGrowth);
+    shares = Math.max(shares - buybackPace, SHARE_FLOOR);
+
+    const eps = ni / shares;
+    const totalGrowth   = eps / prevEps - 1;
+    const buybackContrib = prevShares / shares - 1; // EPS gain from share count alone
+
+    rows.push({ y, ni, shares, eps, totalGrowth, buybackContrib });
+    prevEps = eps;
+  }
+  return rows;
+}
+
+function renderForecast() {
+  const rows = computeForecast();
+
+  // table
+  const tb = document.getElementById('epsForecastTable');
+  tb.innerHTML = rows.map(r => `<tr>
+      <td>${r.y}</td>
+      <td>${fmtMoney(r.ni, 2)}</td>
+      <td>${(r.shares / 1e6).toFixed(0)}</td>
+      <td>$${r.eps.toFixed(2)}</td>
+      <td class="green">+${(r.totalGrowth * 100).toFixed(1)}%</td>
+      <td>+${(r.buybackContrib * 100).toFixed(1)}%</td>
+    </tr>`).join('');
+
+  // chart
+  buildEpsChart(rows.map(r => ({ y: r.y, eps: r.eps })));
+}
+
+
+/* ── Build chart (shares outstanding) ─────────────────── */
 function buildChart() {
   const el = document.getElementById('chartBars');
-  const data = QUARTERS.slice(-8);
-  const minS = 870e6, maxS = 1080e6, range = maxS - minS;
+  const data = QUARTERS.slice(-12);
+  const lastActual = QUARTERS.filter(d => !d.forecast).length - 1; // global index of last actual quarter
+  const offset = QUARTERS.length - data.length;
+  const minS = 550e6, maxS = 1080e6, range = maxS - minS;
   el.innerHTML = data.map((d, i) => {
-    const isLast = i === data.length - 1;
+    const globalIdx = offset + i;
+    const isCurrent = globalIdx === lastActual;
     const h = ((d.shares - minS) / range * 100).toFixed(1);
-    const color = isLast ? 'var(--green)' : 'var(--green-lt, #9FE1CB)';
-    const red = i > 0 ? ((data[i-1].shares - d.shares)/1e6).toFixed(0) : null;
+    // fewer shares = better (more retired) -> deeper green
+    const intensity = 1 - (d.shares - minS) / range;
+    const lightness = 78 - intensity * 35; // 78% (pale, more shares) -> 43% (deep, fewer shares)
+    let style;
+    if (isCurrent) {
+      style = `height:${h}%;background:var(--green);box-shadow:inset 0 0 0 1px var(--green)`;
+    } else if (d.forecast) {
+      style = `height:${h}%;background:hsla(155,35%,${lightness}%,0.35);border:1.5px dashed var(--green)`;
+    } else {
+      style = `height:${h}%;background:hsl(155,35%,${lightness}%)`;
+    }
+    const red = (i > 0 && data[i-1].shares > d.shares) ? ((data[i-1].shares - d.shares)/1e6).toFixed(0) : null;
     const lbl = d.q.replace(' 20', "'");
     return `<div class="bar-col">
-      <div class="bar-top">${(d.shares/1e6).toFixed(0)}</div>
-      <div class="bar-rect" style="height:${h}%;background:${color}"></div>
-      <div class="bar-lbl">${lbl}${red ? '<br>−'+red : ''}</div>
+      <div class="bar-top" style="${isCurrent ? 'color:var(--green);font-weight:600' : ''}">${(d.shares/1e6).toFixed(0)}</div>
+      <div class="bar-rect" style="${style}"></div>
+      <div class="bar-lbl">${lbl}${d.forecast ? '*' : ''}${red ? '<br>−'+red : ''}</div>
     </div>`;
   }).join('');
 }
@@ -314,12 +502,14 @@ function buildChart() {
 /* ── Build table ──────────────────────────────────────── */
 function buildTable() {
   const tb = document.getElementById('dataTable');
+  const lastActual = QUARTERS.filter(d => !d.forecast).length - 1; // global index of last actual quarter
   tb.innerHTML = QUARTERS.map((d, i) => {
-    const isLast = i === QUARTERS.length - 1;
+    const isCurrent = i === lastActual;
     const redShares = d.buyback ? '−' + fmtShares(d.buyback) : '—';
     const spent = d.spent ? fmtMoney(d.spent, 1) : '—';
-    return `<tr${isLast ? ' style="background:var(--surface2)"' : ''}>
-      <td>${d.q}${isLast ? ' ✓' : ''}</td>
+    const rowStyle = isCurrent ? ' style="background:var(--surface2)"' : (d.forecast ? ' style="opacity:0.65"' : '');
+    return `<tr${rowStyle}>
+      <td>${d.q}${isCurrent ? ' ✓' : (d.forecast ? '*' : '')}</td>
       <td>${fmtShares(d.shares)}</td>
       <td class="green">${redShares}</td>
       <td>${spent}</td>
@@ -373,7 +563,7 @@ function renderPrice(price, change, changePct) {
 function tick() {
   const now    = new Date();
   const shares = estimateShares(now);
-  const price  = livePrice || 68.50; // Updated fallback price from 40.70 to a closer estimate
+  const price  = livePrice || 40.70;
 
   // shares
   document.getElementById('sharesDisplay').textContent = fmtShares(shares);
@@ -423,6 +613,9 @@ function tick() {
 /* ── Init ─────────────────────────────────────────────── */
 buildChart();
 buildTable();
+renderForecast();
+document.getElementById('niGrowth').addEventListener('input', renderForecast);
+document.getElementById('buybackPace').addEventListener('input', renderForecast);
 tick();
 setInterval(tick, 1000);
 fetchPrice();
